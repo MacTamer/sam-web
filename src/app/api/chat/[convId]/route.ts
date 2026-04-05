@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { buildSystemPrompt, defaultSettings } from '@/lib/prompts'
+import { getMemories, saveMemory, parseMemoryTags } from '@/lib/memory'
 import { rateLimit } from '@/lib/ratelimit'
 import { openai } from '@ai-sdk/openai'
 import { streamText } from 'ai'
@@ -16,7 +17,7 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Rate limit: 60 messages per user per hour (protects OpenAI credits)
+  // Rate limit: 60 messages per user per hour
   const rl = rateLimit(`chat:${user.id}`, 60, 60 * 60 * 1000)
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Rate limit exceeded. Try again later.' }, { status: 429 })
@@ -54,9 +55,8 @@ export async function POST(
     .eq('conversation_id', convId)
     .eq('role', 'user')
 
-  let newTitle: string | undefined
   if (count === 1) {
-    newTitle = message.slice(0, 50) + (message.length > 50 ? '…' : '')
+    const newTitle = message.slice(0, 50) + (message.length > 50 ? '…' : '')
     await supabase
       .from('conversations')
       .update({ title: newTitle, updated_at: new Date().toISOString() })
@@ -68,24 +68,31 @@ export async function POST(
       .eq('id', convId)
   }
 
-  const { data: history } = await supabase
-    .from('messages')
-    .select('role, content')
-    .eq('conversation_id', convId)
-    .order('created_at', { ascending: true })
-    .limit(60)
+  // Fetch everything in parallel
+  const [historyResult, profileResult, settingsResult, memories] = await Promise.all([
+    supabase
+      .from('messages')
+      .select('role, content')
+      .eq('conversation_id', convId)
+      .order('created_at', { ascending: true })
+      .limit(60),
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase.from('user_settings').select('*').eq('user_id', user.id).single(),
+    getMemories(user.id),
+  ])
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-  const { data: settings } = await supabase.from('user_settings').select('*').eq('user_id', user.id).single()
+  const profile  = profileResult.data
+  const settings = settingsResult.data
 
   const systemPrompt = buildSystemPrompt(
-    profile ?? { id: user.id, name: 'friend', created_at: '' },
+    profile  ?? { id: user.id, name: 'friend', created_at: '' },
     { ...defaultSettings, user_id: user.id, updated_at: '', ...settings },
-    isDesktop
+    isDesktop,
+    memories,
   )
 
-  const messages = (history ?? []).map(m => ({
-    role: m.role as 'user' | 'assistant',
+  const messages = (historyResult.data ?? []).map(m => ({
+    role:    m.role as 'user' | 'assistant',
     content: m.content,
   }))
 
@@ -96,11 +103,20 @@ export async function POST(
     temperature: 0.85,
     maxOutputTokens: 1500,
     onFinish: async ({ text }) => {
+      // Parse and strip [MEMORY:type|content] tags from the response
+      const { cleanText, extracted } = parseMemoryTags(text)
+
+      // Store clean assistant message
       await supabase.from('messages').insert({
         conversation_id: convId,
-        role: 'assistant',
-        content: text,
+        role:    'assistant',
+        content: cleanText,
       })
+
+      // Persist extracted memories
+      for (const m of extracted) {
+        await saveMemory(user.id, m.type, m.content, convId)
+      }
     },
   })
 

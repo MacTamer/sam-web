@@ -2,8 +2,14 @@
 // This is the core personalization engine.
 
 import type { Profile, UserSettings } from '@/types'
+import { buildMemoryBlock, type Memory } from '@/lib/memory'
 
-export function buildSystemPrompt(profile: Profile, settings: UserSettings, isDesktop = false): string {
+export function buildSystemPrompt(
+  profile:   Profile,
+  settings:  UserSettings,
+  isDesktop = false,
+  memories:  Memory[] = []
+): string {
   const name = profile.name || 'friend'
 
   const factsText = settings.about_me_facts?.length
@@ -43,6 +49,8 @@ export function buildSystemPrompt(profile: Profile, settings: UserSettings, isDe
     ? `\n## Desktop capabilities\nYou are running as Sam Desktop — a native desktop application. ${name} can attach local files directly from their computer. When a file is attached, its contents will appear in the message wrapped in [Attached file: filename] ... [End of file] markers. Read and analyze the full file content when provided.\n`
     : ''
 
+  const memoryBlock = buildMemoryBlock(memories, name)
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   })
@@ -64,7 +72,27 @@ ${factsText}
 
 ## ${name}'s interests
 ${interestsText}
-${customBlock}
+${memoryBlock}${customBlock}
+## Memory saving
+When ${name} shares something worth remembering — a personal fact, a decision, a preference, or an active task — acknowledge it naturally in your reply AND append a memory tag at the very end of your response (after all other text):
+
+[MEMORY:type|brief factual summary in one sentence]
+
+Types:
+- general    → personal facts (birthday, job, family, life events)
+- project    → build decisions, tools, stack choices, technical context about Sam or other projects
+- preference → how ${name} likes things done (writing style, habits, UI preferences, workflows)
+- task       → something ${name} is actively working on right now
+
+Rules:
+- Only save things truly worth remembering across conversations
+- One tag per response maximum — pick the most important thing
+- Do NOT save things that are trivially in the current conversation
+- Do NOT save obvious or redundant things already in the memory block above
+- Strip the tag from your visible reply — it will be parsed automatically
+
+Example: if ${name} says "I prefer dark mode" → end with: [MEMORY:preference|Prefers dark mode interfaces]
+
 ## Rules
 - Refer to the user as ${name}.
 - If ${name} shares something new, acknowledge it naturally.

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { Profile, UserSettings } from '@/types'
+import type { Profile, UserSettings, Memory } from '@/types'
 
 interface SamDesktop {
   isDesktop: boolean
@@ -37,6 +37,13 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
   const [vaultMsg,      setVaultMsg]      = useState('')
   const [revealedKey,   setRevealedKey]   = useState<string | null>(null)
   const [revealedValue, setRevealedValue] = useState<string>('')
+
+  // Memory state
+  const [memories,      setMemories]      = useState<Memory[]>([])
+  const [memLoading,    setMemLoading]    = useState(false)
+  const [newMemType,    setNewMemType]    = useState<Memory['type']>('general')
+  const [newMemContent, setNewMemContent] = useState('')
+  const [memSaving,     setMemSaving]     = useState(false)
 
   // Security state
   const [wiping,        setWiping]        = useState(false)
@@ -155,6 +162,51 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
     setRevealedValue('')
     setVaultMsg('Vault wiped')
     setTimeout(() => setVaultMsg(''), 3000)
+  }, [])
+
+  // ── Memory operations ──────────────────────────────────────────────────────
+
+  const loadMemories = useCallback(async () => {
+    setMemLoading(true)
+    const data: Memory[] = await fetch('/api/memory').then(r => r.json())
+    setMemories(Array.isArray(data) ? data : [])
+    setMemLoading(false)
+  }, [])
+
+  useEffect(() => {
+    if (activeSection === 'memory') loadMemories()
+  }, [activeSection, loadMemories])
+
+  const handleSaveMemory = useCallback(async () => {
+    if (!newMemContent.trim()) return
+    setMemSaving(true)
+    await fetch('/api/memory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: newMemType, content: newMemContent.trim() }),
+    })
+    setNewMemContent('')
+    await loadMemories()
+    setMemSaving(false)
+  }, [newMemType, newMemContent, loadMemories])
+
+  const handleDeleteMemory = useCallback(async (id: string) => {
+    await fetch('/api/memory', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    setMemories(prev => prev.filter(m => m.id !== id))
+  }, [])
+
+  const handleClearAllMemories = useCallback(async () => {
+    if (!confirm('Delete all memories? Sam will forget everything it has remembered. This cannot be undone.')) return
+    await fetch('/api/memory', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ all: true }),
+    })
+    setMemories([])
   }, [])
 
   // ── Security operations ────────────────────────────────────────────────────
@@ -300,8 +352,92 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
           {/* Memory */}
           <div className={`modal-section${activeSection !== 'memory' ? ' hidden' : ''}`}>
             <h2 className="section-title">Memory</h2>
-            <p className="section-desc">Sam&apos;s conversation history is stored in your Supabase database. You control it.</p>
+            <p className="section-desc">Sam remembers important things across conversations. You can view, add, or delete memories here.</p>
+
+            {/* Add memory manually */}
+            <div className="field-group" style={{ marginTop: 24 }}>
+              <label className="field-label">Add a memory</label>
+              <p className="field-desc">Manually tell Sam something to remember.</p>
+              <div className="memory-add-form">
+                <select
+                  className="field-select"
+                  value={newMemType}
+                  onChange={e => setNewMemType(e.target.value as Memory['type'])}
+                >
+                  <option value="general">Personal</option>
+                  <option value="project">Project</option>
+                  <option value="preference">Preference</option>
+                  <option value="task">Task</option>
+                </select>
+                <input
+                  className="field-input"
+                  placeholder="e.g. I prefer short responses and no bullet points"
+                  value={newMemContent}
+                  onChange={e => setNewMemContent(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveMemory() }}
+                />
+                <button
+                  className="btn-primary"
+                  onClick={handleSaveMemory}
+                  disabled={memSaving || !newMemContent.trim()}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+
+            {/* Memory list */}
+            <div className="field-group" style={{ marginTop: 24 }}>
+              <label className="field-label">
+                Saved memories {memories.length > 0 ? `(${memories.length})` : ''}
+              </label>
+              {memLoading ? (
+                <p className="field-desc">Loading…</p>
+              ) : memories.length === 0 ? (
+                <p className="field-desc">No memories yet. Sam will start saving things as you chat.</p>
+              ) : (
+                <div className="memory-list">
+                  {(['task', 'project', 'preference', 'general'] as Memory['type'][]).map(type => {
+                    const group = memories.filter(m => m.type === type)
+                    if (!group.length) return null
+                    const labels: Record<Memory['type'], string> = {
+                      task:       'Current tasks',
+                      project:    'Projects & decisions',
+                      preference: 'Preferences',
+                      general:    'Personal',
+                    }
+                    return (
+                      <div key={type} className="memory-group">
+                        <div className="memory-group-label">{labels[type]}</div>
+                        {group.map(m => (
+                          <div key={m.id} className="memory-item">
+                            <span className="memory-item-content">{m.content}</span>
+                            <button
+                              className="memory-item-delete"
+                              onClick={() => handleDeleteMemory(m.id)}
+                              title="Forget this"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Danger zone */}
             <div className="field-group" style={{ marginTop: 28 }}>
+              <label className="field-label">Clear all memories</label>
+              <p className="field-desc">Sam will forget everything it has remembered. Conversation history is not affected.</p>
+              <button className="btn-danger" onClick={handleClearAllMemories} disabled={memories.length === 0}>
+                Clear all memories
+              </button>
+            </div>
+
+            <div className="field-group" style={{ marginTop: 16 }}>
               <label className="field-label">Clear all conversations</label>
               <p className="field-desc">Permanently delete every conversation and start fresh.</p>
               <button className="btn-danger" onClick={handleClearMemory}>Delete all conversations</button>

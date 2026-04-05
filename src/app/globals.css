@@ -1314,3 +1314,75 @@ code {
 }
 
 .auth-switch:hover { color: var(--text); }
+
+/* ── Memory UI ──────────────────────────────────────────────── */
+.memory-add-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.memory-add-form .field-select {
+  width: 130px;
+  flex-shrink: 0;
+}
+
+.memory-add-form .field-input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.memory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.memory-group {}
+
+.memory-group-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.memory-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-sidebar);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.memory-item-content {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.memory-item-delete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.memory-item-delete:hover {
+  opacity: 1;
+  color: #f08080;
+}

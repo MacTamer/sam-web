@@ -61,6 +61,14 @@ export interface UpdateSettingsPayload {
   custom_instructions?: string
 }
 
+export interface Memory {
+  id:         string
+  user_id?:   string
+  type:       'general' | 'project' | 'preference' | 'task'
+  content:    string
+  created_at: string
+}
+
 // ── Client-side UI state ───────────────────────────────
 
 export interface UIMessage {
