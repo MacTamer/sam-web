@@ -40,5 +40,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid username or password.' }, { status: 401 })
   }
 
-  return NextResponse.json({ ok: true })
+  // Return email so mobile clients can establish their own Supabase session
+  const isMobile = req.headers.get('x-sam-platform') === 'mobile'
+  return NextResponse.json({ ok: true, ...(isMobile ? { email: internalEmail } : {}) })
 }
