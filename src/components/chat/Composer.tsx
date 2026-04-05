@@ -1,6 +1,7 @@
 'use client'
 
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
+import { checkSensitivity } from '@/lib/sensitivity'
 
 interface AttachedFile {
   name:    string
@@ -19,9 +20,10 @@ interface Props {
 
 export function Composer({ input, isLoading, attachedFile, onChange, onSubmit, onAttachFile, onRemoveFile }: Props) {
   const textareaRef  = useRef<HTMLTextAreaElement>(null)
-  const [isDesktop, setIsDesktop] = useState(false)
+  const [isDesktop,  setIsDesktop]  = useState(false)
+  const [warning,    setWarning]    = useState<string | null>(null)
+  const [pendingSubmit, setPendingSubmit] = useState(false)
 
-  // Detect desktop after mount (window not available during SSR)
   useEffect(() => {
     setIsDesktop(!!(window as unknown as { samDesktop?: { isDesktop?: boolean } }).samDesktop?.isDesktop)
   }, [])
@@ -34,19 +36,74 @@ export function Composer({ input, isLoading, attachedFile, onChange, onSubmit, o
     el.style.height = Math.min(el.scrollHeight, 200) + 'px'
   }, [input])
 
+  // Clear warning when input changes
+  useEffect(() => {
+    if (warning) setWarning(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input])
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       if (!isLoading && ((input ?? '').trim() || attachedFile)) {
-        onSubmit(e as unknown as React.FormEvent)
+        handleSubmitWithCheck(e as unknown as React.FormEvent)
       }
     }
+  }
+
+  const handleSubmitWithCheck = useCallback((e: React.FormEvent) => {
+    e.preventDefault()
+    const text = (input ?? '').trim()
+    if (!text && !attachedFile) return
+
+    const { isSensitive, reason } = checkSensitivity(text)
+
+    if (isSensitive && !pendingSubmit) {
+      setWarning(reason)
+      return
+    }
+
+    // Reset and send
+    setWarning(null)
+    setPendingSubmit(false)
+    onSubmit(e)
+  }, [input, attachedFile, pendingSubmit, onSubmit])
+
+  function handleSendAnyway(e: React.FormEvent) {
+    e.preventDefault()
+    setPendingSubmit(true)
+    setWarning(null)
+    // Submit directly — bypass check since user explicitly chose to send
+    onSubmit(e)
   }
 
   const canSend = !isLoading && ((input ?? '').trim().length > 0 || attachedFile !== null)
 
   return (
     <div className="composer-wrap">
+      {/* Sensitivity warning banner */}
+      {warning && (
+        <div className="sensitivity-warning">
+          <span className="sensitivity-icon">⚠</span>
+          <span className="sensitivity-text">
+            This message may contain a <strong>{warning}</strong>. Sending this will transmit it to OpenAI.
+          </span>
+          <div className="sensitivity-actions">
+            {isDesktop && (
+              <button className="sensitivity-btn-vault" onClick={() => setWarning(null)}>
+                Save to Vault instead
+              </button>
+            )}
+            <button className="sensitivity-btn-send" onClick={handleSendAnyway}>
+              Send anyway
+            </button>
+            <button className="sensitivity-btn-cancel" onClick={() => setWarning(null)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {attachedFile && (
         <div className="attachment-chip">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
@@ -57,7 +114,8 @@ export function Composer({ input, isLoading, attachedFile, onChange, onSubmit, o
           <button className="attachment-remove" onClick={onRemoveFile} aria-label="Remove file">×</button>
         </div>
       )}
-      <form className="composer" onSubmit={onSubmit}>
+
+      <form className="composer" onSubmit={handleSubmitWithCheck}>
         {isDesktop && (
           <button
             type="button"
@@ -85,7 +143,6 @@ export function Composer({ input, isLoading, attachedFile, onChange, onSubmit, o
         <button
           type="submit"
           className={`send-btn${isLoading ? ' loading' : ''}`}
-          id="send-btn"
           disabled={!canSend}
         >
           <svg className="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

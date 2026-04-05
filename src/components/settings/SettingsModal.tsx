@@ -3,6 +3,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Profile, UserSettings } from '@/types'
 
+interface SamDesktop {
+  isDesktop: boolean
+  vault: {
+    set:    (key: string, value: string) => Promise<void>
+    get:    (key: string)               => Promise<string | null>
+    delete: (key: string)               => Promise<void>
+    keys:   ()                          => Promise<string[]>
+  }
+}
+
 interface Props {
   section:  string
   profile:  Profile | null
@@ -11,12 +21,26 @@ interface Props {
   onSaved:  (profile: Profile, settings: UserSettings) => void
 }
 
-const SECTIONS = ['general', 'personalization', 'memory', 'account'] as const
+const SECTIONS = ['general', 'personalization', 'memory', 'security', 'account'] as const
 
 export function SettingsModal({ section: initialSection, profile, settings, onClose, onSaved }: Props) {
   const [activeSection, setActiveSection] = useState(initialSection)
   const [saving,        setSaving]        = useState(false)
   const [saveMsg,       setSaveMsg]       = useState('')
+  const [isDesktop,     setIsDesktop]     = useState(false)
+
+  // Vault state
+  const [vaultKeys,     setVaultKeys]     = useState<string[]>([])
+  const [vaultKey,      setVaultKey]      = useState('')
+  const [vaultValue,    setVaultValue]    = useState('')
+  const [vaultSaving,   setVaultSaving]   = useState(false)
+  const [vaultMsg,      setVaultMsg]      = useState('')
+  const [revealedKey,   setRevealedKey]   = useState<string | null>(null)
+  const [revealedValue, setRevealedValue] = useState<string>('')
+
+  // Security state
+  const [wiping,        setWiping]        = useState(false)
+  const [revoking,      setRevoking]      = useState(false)
 
   // Form state
   const [name,         setName]         = useState(profile?.name || '')
@@ -29,6 +53,14 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
   const [headers,      setHeaders]      = useState(settings?.use_headers || false)
   const [facts,        setFacts]        = useState((settings?.about_me_facts || []).join('\n'))
   const [instructions, setInstructions] = useState(settings?.custom_instructions || '')
+
+  useEffect(() => {
+    const sd = (window as unknown as { samDesktop?: SamDesktop }).samDesktop
+    if (sd?.isDesktop) {
+      setIsDesktop(true)
+      sd.vault.keys().then(setVaultKeys)
+    }
+  }, [])
 
   // Close on Escape
   useEffect(() => {
@@ -57,13 +89,8 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
     setSaving(false)
     setSaveMsg('Saved')
     setTimeout(() => setSaveMsg(''), 2500)
-
-    // Optimistic update for parent
     if (profile && settings) {
-      onSaved(
-        { ...profile, name },
-        { ...settings, ...payload }
-      )
+      onSaved({ ...profile, name }, { ...settings, ...payload })
     }
   }, [name, tone, directness, warmth, respLength, emoji, headers, interests, facts, instructions, profile, settings, onSaved])
 
@@ -74,6 +101,81 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
     onClose()
     window.location.reload()
   }, [onClose])
+
+  // ── Vault operations ───────────────────────────────────────────────────────
+
+  const handleVaultSave = useCallback(async () => {
+    const sd = (window as unknown as { samDesktop?: SamDesktop }).samDesktop
+    if (!sd || !vaultKey.trim() || !vaultValue.trim()) return
+    setVaultSaving(true)
+    await sd.vault.set(vaultKey.trim(), vaultValue.trim())
+    const keys = await sd.vault.keys()
+    setVaultKeys(keys)
+    setVaultKey('')
+    setVaultValue('')
+    setVaultMsg('Saved to vault')
+    setTimeout(() => setVaultMsg(''), 2500)
+    setVaultSaving(false)
+  }, [vaultKey, vaultValue])
+
+  const handleVaultReveal = useCallback(async (key: string) => {
+    const sd = (window as unknown as { samDesktop?: SamDesktop }).samDesktop
+    if (!sd) return
+    if (revealedKey === key) {
+      setRevealedKey(null)
+      setRevealedValue('')
+      return
+    }
+    if (!confirm(`Reveal "${key}" from vault? This will show the value on screen.`)) return
+    const value = await sd.vault.get(key)
+    setRevealedKey(key)
+    setRevealedValue(value ?? '(empty)')
+    // Auto-hide after 15 seconds
+    setTimeout(() => { setRevealedKey(null); setRevealedValue('') }, 15000)
+  }, [revealedKey])
+
+  const handleVaultDelete = useCallback(async (key: string) => {
+    const sd = (window as unknown as { samDesktop?: SamDesktop }).samDesktop
+    if (!sd) return
+    if (!confirm(`Permanently delete "${key}" from vault?`)) return
+    await sd.vault.delete(key)
+    setVaultKeys(prev => prev.filter(k => k !== key))
+    if (revealedKey === key) { setRevealedKey(null); setRevealedValue('') }
+  }, [revealedKey])
+
+  const handleVaultWipe = useCallback(async () => {
+    const sd = (window as unknown as { samDesktop?: SamDesktop }).samDesktop
+    if (!sd) return
+    if (!confirm('Wipe ENTIRE local vault? All saved items will be permanently deleted. This cannot be undone.')) return
+    if (!confirm('Are you absolutely sure? This deletes everything in the vault.')) return
+    const keys = await sd.vault.keys()
+    await Promise.all(keys.map(k => sd.vault.delete(k)))
+    setVaultKeys([])
+    setRevealedKey(null)
+    setRevealedValue('')
+    setVaultMsg('Vault wiped')
+    setTimeout(() => setVaultMsg(''), 3000)
+  }, [])
+
+  // ── Security operations ────────────────────────────────────────────────────
+
+  const handleRevokeAllSessions = useCallback(async () => {
+    if (!confirm('Sign out all sessions everywhere? You will need to log in again on all devices.')) return
+    setRevoking(true)
+    await fetch('/api/auth/revoke', { method: 'POST' })
+    setRevoking(false)
+    window.location.href = '/login'
+  }, [])
+
+  const handleEmergencyWipe = useCallback(async () => {
+    if (!confirm('EMERGENCY WIPE: Delete ALL conversations and messages permanently?')) return
+    if (!confirm('This cannot be undone. Confirm final time.')) return
+    setWiping(true)
+    const convs: { id: string }[] = await fetch('/api/conversations').then(r => r.json())
+    await Promise.all(convs.map(c => fetch(`/api/conversations/${c.id}`, { method: 'DELETE' })))
+    await fetch('/api/auth/revoke', { method: 'POST' })
+    window.location.href = '/login'
+  }, [])
 
   return (
     <div className="modal-backdrop open" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -121,7 +223,6 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
           {/* Personalization */}
           <div className={`modal-section${activeSection !== 'personalization' ? ' hidden' : ''}`}>
             <h2 className="section-title">Personalization</h2>
-
             <div className="field-row">
               <div className="field-group">
                 <label className="field-label">Tone</label>
@@ -142,7 +243,6 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
                 </select>
               </div>
             </div>
-
             <div className="field-row">
               <div className="field-group">
                 <label className="field-label">Warmth</label>
@@ -161,7 +261,6 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
                 </select>
               </div>
             </div>
-
             <div className="field-row">
               <div className="field-group toggle-group">
                 <div className="toggle-label-wrap">
@@ -184,19 +283,16 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
                 </label>
               </div>
             </div>
-
             <div className="field-group">
               <label className="field-label">About you</label>
               <p className="field-desc">Facts Sam should always know about you. One per line.</p>
               <textarea className="field-textarea" rows={4} value={facts} onChange={e => setFacts(e.target.value)} placeholder={"I live in Denver\nI have two dogs"} />
             </div>
-
             <div className="field-group">
               <label className="field-label">Custom instructions</label>
               <p className="field-desc">Tell Sam how to respond. Applied to every conversation.</p>
               <textarea className="field-textarea" rows={4} value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="e.g. Be direct. Challenge my assumptions. Never sugarcoat." />
             </div>
-
             <button className="btn-primary" onClick={handleSave} disabled={saving}>Save changes</button>
             <span className="save-confirm">{saveMsg}</span>
           </div>
@@ -212,13 +308,117 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
             </div>
           </div>
 
+          {/* Security */}
+          <div className={`modal-section${activeSection !== 'security' ? ' hidden' : ''}`}>
+            <h2 className="section-title">Security</h2>
+
+            {/* Vault — desktop only */}
+            {isDesktop ? (
+              <>
+                <div className="field-group">
+                  <label className="field-label">Local Vault</label>
+                  <p className="field-desc">
+                    Vault items are encrypted locally using your OS keychain (Windows DPAPI).
+                    They never leave your device and are never sent to Sam or OpenAI.
+                  </p>
+                </div>
+
+                <div className="vault-add-form">
+                  <input
+                    className="field-input"
+                    placeholder="Item name (e.g. Netflix recovery code)"
+                    value={vaultKey}
+                    onChange={e => setVaultKey(e.target.value)}
+                  />
+                  <input
+                    className="field-input"
+                    placeholder="Value"
+                    type="password"
+                    value={vaultValue}
+                    onChange={e => setVaultValue(e.target.value)}
+                  />
+                  <button
+                    className="btn-primary"
+                    onClick={handleVaultSave}
+                    disabled={vaultSaving || !vaultKey.trim() || !vaultValue.trim()}
+                  >
+                    Save to Vault
+                  </button>
+                  {vaultMsg && <span className="save-confirm">{vaultMsg}</span>}
+                </div>
+
+                {vaultKeys.length > 0 && (
+                  <div className="vault-list">
+                    <p className="field-label" style={{ marginBottom: 8 }}>Stored items ({vaultKeys.length})</p>
+                    {vaultKeys.map(key => (
+                      <div key={key} className="vault-item">
+                        <span className="vault-item-key">🔒 {key}</span>
+                        {revealedKey === key && (
+                          <span className="vault-item-value">{revealedValue}</span>
+                        )}
+                        <div className="vault-item-actions">
+                          <button
+                            className="msg-action-btn"
+                            onClick={() => handleVaultReveal(key)}
+                          >
+                            {revealedKey === key ? 'Hide' : 'Reveal'}
+                          </button>
+                          <button
+                            className="msg-action-btn"
+                            onClick={() => handleVaultDelete(key)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="field-group" style={{ marginTop: 24 }}>
+                  <label className="field-label">Wipe vault</label>
+                  <p className="field-desc">Permanently delete all items from your local vault.</p>
+                  <button className="btn-danger" onClick={handleVaultWipe}>Wipe entire vault</button>
+                </div>
+              </>
+            ) : (
+              <div className="field-group">
+                <label className="field-label">Local Vault</label>
+                <p className="field-desc">The encrypted local vault is only available in Sam Desktop.</p>
+              </div>
+            )}
+
+            {/* Session revocation */}
+            <div className="field-group" style={{ marginTop: 28 }}>
+              <label className="field-label">Revoke all sessions</label>
+              <p className="field-desc">
+                Signs you out on every device immediately. Use this if you suspect your account has been compromised.
+              </p>
+              <button className="btn-danger" onClick={handleRevokeAllSessions} disabled={revoking}>
+                {revoking ? 'Revoking…' : 'Sign out all sessions'}
+              </button>
+            </div>
+
+            {/* Emergency wipe */}
+            <div className="field-group" style={{ marginTop: 16 }}>
+              <label className="field-label">Emergency wipe</label>
+              <p className="field-desc">
+                Deletes all conversations and messages, then signs out all sessions.
+                Use only in an emergency. This cannot be undone.
+              </p>
+              <button className="btn-danger" onClick={handleEmergencyWipe} disabled={wiping}>
+                {wiping ? 'Wiping…' : 'Emergency wipe everything'}
+              </button>
+            </div>
+          </div>
+
           {/* Account */}
           <div className={`modal-section${activeSection !== 'account' ? ' hidden' : ''}`}>
             <h2 className="section-title">Account</h2>
             <p className="section-desc">Your data is stored in your private Supabase database. Nothing is shared.</p>
             <div className="field-group" style={{ marginTop: 28 }}>
               <label className="field-label">AI provider</label>
-              <p className="field-desc">Currently using <strong>OpenAI GPT-4o</strong>. Claude support coming soon.</p>
+              <p className="field-desc">Currently using <strong>OpenAI GPT-4o</strong>.</p>
             </div>
             <div className="field-group">
               <button className="btn-danger" onClick={async () => {
