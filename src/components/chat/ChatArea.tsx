@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { TextStreamChatTransport } from 'ai'
+import ReactMarkdown from 'react-markdown'
 import { Composer } from './Composer'
 
 interface Props {
@@ -17,6 +18,7 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
   const userScrolledUp  = useRef(false)
   const [initialLoaded, setInitialLoaded] = useState(false)
   const [input, setInput] = useState('')
+  const [regenerating, setRegenerating] = useState(false)
 
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new TextStreamChatTransport({ api: `/api/chat/${convId}` }),
@@ -75,6 +77,33 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
     setTimeout(() => { btn.innerHTML = prev; btn.classList.remove('copied') }, 2000)
   }, [])
 
+  const handleRegenerate = useCallback(async () => {
+    if (isLoading || regenerating) return
+    setRegenerating(true)
+    try {
+      const res = await fetch(`/api/conversations/${convId}/regenerate`, { method: 'POST' })
+      if (!res.ok) return
+      // Remove last assistant message from UI then stream the new one
+      setMessages(prev => {
+        const idx = [...prev].reverse().findIndex(m => m.role === 'assistant')
+        if (idx === -1) return prev
+        const removeAt = prev.length - 1 - idx
+        return prev.filter((_, i) => i !== removeAt)
+      })
+      // Re-fetch history so useChat has up-to-date messages, then trigger a reload
+      const conv = await fetch(`/api/conversations/${convId}`).then(r => r.json())
+      if (conv.messages) {
+        setMessages(conv.messages.map((m: { id: string; role: string; content: string }) => ({
+          id:    m.id,
+          role:  m.role as 'user' | 'assistant',
+          parts: [{ type: 'text' as const, text: m.content }],
+        })))
+      }
+    } finally {
+      setRegenerating(false)
+    }
+  }, [convId, isLoading, regenerating, setMessages])
+
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim() || isLoading) return
@@ -91,6 +120,8 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
       .join('')
   }
 
+  const lastAssistantIdx = messages.map(m => m.role).lastIndexOf('assistant')
+
   return (
     <div className={`main${!isEmpty ? ' chatting' : ''}`} id="main">
       <button className="mobile-menu-btn" onClick={onToggleSidebar}>
@@ -106,13 +137,20 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
       <div className="messages" ref={messagesRef}>
         {messages.map((m, i) => {
           const isLast = i === messages.length - 1
+          const isLastAssistant = i === lastAssistantIdx
           const text = getMessageText(m)
           return (
             <div key={m.id} className={`message ${m.role === 'user' ? 'user' : 'sam'}${m.role === 'assistant' && isLoading && isLast ? ' streaming' : ''}`}>
               {m.role === 'assistant' && (
                 <div className="msg-label">Sam</div>
               )}
-              <div className="msg-content">{text}</div>
+              <div className="msg-content">
+                {m.role === 'assistant' ? (
+                  <ReactMarkdown>{text}</ReactMarkdown>
+                ) : (
+                  text
+                )}
+              </div>
               {m.role === 'assistant' && !isLoading && (
                 <div className="msg-actions">
                   <button
@@ -125,6 +163,19 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
                     </svg>
                     Copy
                   </button>
+                  {isLastAssistant && (
+                    <button
+                      className="msg-action-btn"
+                      onClick={handleRegenerate}
+                      disabled={regenerating}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
+                        <polyline points="1 4 1 10 7 10" />
+                        <path d="M3.51 15a9 9 0 1 0 .49-4.95" />
+                      </svg>
+                      {regenerating ? 'Regenerating…' : 'Regenerate'}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

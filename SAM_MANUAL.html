@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAM — Complete System Manual</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background: #fff;
+    padding: 40px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+    color: #000;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 36px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #000;
+  }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #000;
+    margin-top: 36px;
+    margin-bottom: 14px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #ddd;
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #222;
+    margin-top: 18px;
+    margin-bottom: 6px;
+    page-break-after: avoid;
+  }
+
+  p {
+    margin-bottom: 10px;
+    color: #333;
+  }
+
+  ul, ol {
+    margin: 8px 0 12px 22px;
+  }
+
+  li {
+    margin-bottom: 4px;
+    color: #333;
+  }
+
+  code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 11.5px;
+    background: #f4f4f4;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: #c7254e;
+  }
+
+  pre {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 11px;
+    background: #f7f7f7;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 14px 16px;
+    margin: 10px 0 14px 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #333;
+    line-height: 1.7;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 14px 0;
+    font-size: 12px;
+  }
+
+  th {
+    background: #f0f0f0;
+    text-align: left;
+    padding: 7px 10px;
+    font-weight: 700;
+    border: 1px solid #ddd;
+  }
+
+  td {
+    padding: 7px 10px;
+    border: 1px solid #ddd;
+    vertical-align: top;
+  }
+
+  tr:nth-child(even) td {
+    background: #fafafa;
+  }
+
+  .section {
+    page-break-inside: avoid;
+  }
+
+  .checklist {
+    list-style: none;
+    margin-left: 0;
+  }
+
+  .checklist li {
+    padding: 3px 0 3px 24px;
+    position: relative;
+  }
+
+  .checklist li::before {
+    content: '☐';
+    position: absolute;
+    left: 0;
+    color: #555;
+    font-size: 13px;
+  }
+
+  .done li::before {
+    content: '☑';
+    color: #2a7a2a;
+  }
+
+  .callout {
+    background: #f8f8f8;
+    border-left: 3px solid #555;
+    padding: 10px 14px;
+    margin: 10px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 12px;
+    color: #444;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  .toc {
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin-bottom: 30px;
+  }
+
+  .toc h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .toc ol {
+    margin: 0 0 0 18px;
+  }
+
+  .toc li {
+    margin-bottom: 3px;
+    color: #444;
+    font-size: 12px;
+  }
+
+  .tag {
+    display: inline-block;
+    background: #eee;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: 11px;
+    color: #555;
+    margin-right: 4px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  .footer {
+    margin-top: 40px;
+    padding-top: 14px;
+    border-top: 1px solid #ddd;
+    font-size: 11px;
+    color: #999;
+    text-align: center;
+  }
+
+  @media print {
+    body { padding: 0; font-size: 12px; }
+    h2 { page-break-before: auto; }
+    .no-print { display: none; }
+    pre { font-size: 10.5px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- PRINT BUTTON (hidden when printing) -->
+<div class="no-print" style="text-align:right; margin-bottom: 20px;">
+  <button onclick="window.print()" style="background:#000; color:#fff; border:none; padding: 10px 22px; font-size:13px; font-weight:600; border-radius:5px; cursor:pointer; letter-spacing:0.3px;">
+    Print / Save as PDF
+  </button>
+</div>
+
+<h1>SAM — Complete System Manual</h1>
+<p class="subtitle">Stack: Next.js 16 · AI SDK v6 · Supabase · OpenAI GPT-4o · Vercel &nbsp;|&nbsp; Built April 2026</p>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+  <h3>Table of Contents</h3>
+  <ol>
+    <li>Overview</li>
+    <li>Tech Stack</li>
+    <li>Accounts &amp; Services</li>
+    <li>Project Structure</li>
+    <li>How the System Works (Flow)</li>
+    <li>Exact Setup Steps</li>
+    <li>How to Run / Update Sam</li>
+    <li>Current Limitations</li>
+    <li>Next Steps (Roadmap)</li>
+  </ol>
+</div>
+
+
+<!-- SECTION 1 -->
+<h2>Section 1 — Overview</h2>
+
+<h3>What Sam Is</h3>
+<p>Sam is a <strong>private, personal AI chatbot</strong> that lives on the internet. You own it completely — it is not shared with anyone, there is no public signup, and your conversations are stored in your own private database.</p>
+<p>Think of it like your personal version of ChatGPT, but:</p>
+<ul>
+  <li>Only you can log in</li>
+  <li>Your data stays in your own accounts</li>
+  <li>You can customize Sam's personality and behavior</li>
+  <li>It runs 24/7 on a real URL you can open from your phone, laptop, or anywhere</li>
+</ul>
+
+<h3>How It Works (Simple Version)</h3>
+<ol>
+  <li>You open the website and log in with your username + password</li>
+  <li>You type a message to Sam</li>
+  <li>The message gets sent to a server (running on Vercel)</li>
+  <li>The server saves your message, then asks OpenAI GPT-4o to respond</li>
+  <li>The response streams back to your screen in real time, word by word</li>
+  <li>Everything gets saved to your private database (Supabase)</li>
+  <li>Your conversation history persists across devices and sessions</li>
+</ol>
+
+<h3>The Three Main Pieces</h3>
+<table>
+  <tr><th>Piece</th><th>What It Is</th></tr>
+  <tr><td><strong>Frontend</strong></td><td>The website you see and interact with</td></tr>
+  <tr><td><strong>Backend</strong></td><td>The server code that handles logic, authentication, and AI calls</td></tr>
+  <tr><td><strong>Database</strong></td><td>Where your conversations, settings, and profile are stored</td></tr>
+</table>
+
+
+<!-- SECTION 2 -->
+<div class="page-break"></div>
+<h2>Section 2 — Tech Stack</h2>
+
+<h3>Frontend</h3>
+<p><strong>Next.js 16 (App Router)</strong> — The framework that builds the website. Handles both the pages you see AND the server-side API routes. "App Router" is the modern way Next.js organizes pages using folders.</p>
+<p><strong>React 18</strong> — The UI library Next.js uses under the hood. Everything you see (chat bubbles, sidebar, buttons) is a React component.</p>
+<p><strong>TypeScript</strong> — A stricter version of JavaScript that catches errors before they happen. All <code>.tsx</code> and <code>.ts</code> files use TypeScript.</p>
+<p><strong>@ai-sdk/react v3</strong> — Vercel's official library for building AI chat interfaces in React. Provides the <code>useChat</code> hook that manages streaming, message state, and sending. v3 is a major redesign — messages now use a <code>parts</code> array instead of plain <code>content</code> strings.</p>
+
+<h3>Backend</h3>
+<p><strong>Next.js API Routes</strong> — The backend lives inside the same Next.js project under <code>src/app/api/</code>. Each folder is a different API endpoint. No separate server needed — Vercel runs these as serverless functions.</p>
+<p><strong>Vercel AI SDK v6 (<code>ai</code> package)</strong> — Core library for calling AI models and streaming responses. <code>streamText()</code> calls GPT-4o and streams the reply back token by token. <code>TextStreamChatTransport</code> connects the client's <code>useChat</code> to the server's text stream.</p>
+<p><strong>@ai-sdk/openai v3</strong> — The OpenAI provider for the AI SDK. Wraps your OpenAI API key and lets you call <code>openai('gpt-4o')</code>.</p>
+
+<h3>Database &amp; Auth</h3>
+<p><strong>Supabase</strong> — A hosted PostgreSQL database with built-in authentication. Stores conversations, messages, user profiles, and user settings. Handles login sessions via cookies and JWT tokens. Row Level Security (RLS) ensures each user can only see their own data.</p>
+<p><strong>@supabase/ssr + @supabase/supabase-js</strong> — Libraries for connecting to Supabase from Next.js. <code>@supabase/ssr</code> handles server-side session management correctly for Next.js 16.</p>
+
+<h3>Hosting &amp; Version Control</h3>
+<p><strong>Vercel</strong> — Hosts the entire app (frontend + backend). Connected to GitHub — every push to <code>main</code> automatically redeploys. Free plan handles personal use with no issues.</p>
+<p><strong>Git + GitHub</strong> — All code is stored in a private GitHub repo (<code>MacTamer/sam-web</code>). Vercel watches this repo and auto-deploys on every push.</p>
+
+<h3>Full Dependency Reference</h3>
+<table>
+  <tr><th>Package</th><th>Version</th><th>Purpose</th></tr>
+  <tr><td><code>next</code></td><td>^16.2.2</td><td>Full-stack web framework</td></tr>
+  <tr><td><code>react</code> / <code>react-dom</code></td><td>^18.3.1</td><td>UI library</td></tr>
+  <tr><td><code>ai</code></td><td>^6.0.146</td><td>AI SDK core — streamText, transports</td></tr>
+  <tr><td><code>@ai-sdk/openai</code></td><td>^3.0.50</td><td>OpenAI provider for AI SDK</td></tr>
+  <tr><td><code>@ai-sdk/react</code></td><td>^3.0.148</td><td>React hooks for AI (useChat)</td></tr>
+  <tr><td><code>@supabase/supabase-js</code></td><td>^2.45.4</td><td>Supabase client library</td></tr>
+  <tr><td><code>@supabase/ssr</code></td><td>^0.5.1</td><td>Supabase server-side session handling</td></tr>
+  <tr><td><code>typescript</code></td><td>^5.5.4</td><td>Type-safe JavaScript</td></tr>
+  <tr><td><code>eslint</code></td><td>^9.0.0</td><td>Code linting (must be v9 for Next 16)</td></tr>
+</table>
+
+
+<!-- SECTION 3 -->
+<div class="page-break"></div>
+<h2>Section 3 — Accounts &amp; Services</h2>
+
+<h3>1. Vercel</h3>
+<table>
+  <tr><th>Field</th><th>Details</th></tr>
+  <tr><td>What it is</td><td>Hosting platform — serves the live website and runs the backend functions</td></tr>
+  <tr><td>Why we used it</td><td>Free tier, built specifically for Next.js (Vercel built Next.js), auto-deploys from GitHub</td></tr>
+  <tr><td>What it controls</td><td>Serving the live URL, running API routes as serverless functions, storing environment variables (secrets)</td></tr>
+  <tr><td>Project</td><td>sam-web at vercel.com</td></tr>
+</table>
+
+<h3>2. Supabase</h3>
+<table>
+  <tr><th>Field</th><th>Details</th></tr>
+  <tr><td>What it is</td><td>Hosted PostgreSQL database + authentication service</td></tr>
+  <tr><td>Why we used it</td><td>Free tier, built-in auth with sessions, Row Level Security, no server to manage</td></tr>
+  <tr><td>What it controls</td><td>All stored data (conversations, messages, settings, profile), login sessions</td></tr>
+  <tr><td>Project ID</td><td>gmsltsbxntvwglstilav at supabase.com</td></tr>
+</table>
+
+<h3>3. OpenAI</h3>
+<table>
+  <tr><th>Field</th><th>Details</th></tr>
+  <tr><td>What it is</td><td>The AI provider powering Sam's responses</td></tr>
+  <tr><td>Why we used it</td><td>GPT-4o is the best general-purpose model available today</td></tr>
+  <tr><td>What it controls</td><td>Generating Sam's replies — you pay per token used</td></tr>
+  <tr><td>Notes</td><td>API key is stored in Vercel environment variables, never in code</td></tr>
+</table>
+
+<h3>4. GitHub</h3>
+<table>
+  <tr><th>Field</th><th>Details</th></tr>
+  <tr><td>What it is</td><td>Code storage and version control</td></tr>
+  <tr><td>Why we used it</td><td>Vercel auto-deploys from GitHub — push code, site updates automatically</td></tr>
+  <tr><td>What it controls</td><td>The source code history and the deployment trigger</td></tr>
+  <tr><td>Repo</td><td>github.com/MacTamer/sam-web (private)</td></tr>
+</table>
+
+<h3>Environment Variables (stored in Vercel)</h3>
+<div class="callout">These secrets are stored in Vercel → Settings → Environment Variables. They are also in <code>.env.local</code> on your local machine for development. This file is never committed to GitHub.</div>
+<table>
+  <tr><th>Variable</th><th>What It Is</th></tr>
+  <tr><td><code>OPENAI_API_KEY</code></td><td>Your OpenAI API key for GPT-4o calls</td></tr>
+  <tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td>Your Supabase project URL (safe to expose to browser)</td></tr>
+  <tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td>Supabase anon key (safe to expose — RLS protects the data)</td></tr>
+  <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td>Supabase service key (secret — bypasses RLS, server only)</td></tr>
+  <tr><td><code>SAM_USERNAME</code></td><td>The username shown at login (currently: Mactamer)</td></tr>
+  <tr><td><code>SAM_USER_EMAIL</code></td><td>Your internal Supabase email (mactamerr@gmail.com)</td></tr>
+</table>
+
+
+<!-- SECTION 4 -->
+<div class="page-break"></div>
+<h2>Section 4 — Project Structure</h2>
+
+<pre>sam-web/
+├── src/
+│   ├── app/
+│   │   ├── (app)/
+│   │   │   └── chat/
+│   │   │       └── page.tsx          ← Main chat page (requires login)
+│   │   ├── (auth)/
+│   │   │   └── login/
+│   │   │       └── page.tsx          ← Login page
+│   │   ├── api/
+│   │   │   ├── auth/
+│   │   │   │   ├── login/route.ts    ← Handles login requests
+│   │   │   │   └── logout/route.ts   ← Handles logout
+│   │   │   ├── chat/
+│   │   │   │   └── [convId]/
+│   │   │   │       └── route.ts      ← Streams AI responses ★ CORE
+│   │   │   ├── conversations/
+│   │   │   │   ├── route.ts          ← List / create conversations
+│   │   │   │   └── [id]/
+│   │   │   │       ├── route.ts      ← Get / update / delete one conversation
+│   │   │   │       └── regenerate/
+│   │   │   │           └── route.ts  ← Regenerate last AI response
+│   │   │   └── profile/
+│   │   │       └── route.ts          ← Get / update profile and settings
+│   │   ├── layout.tsx                ← Root HTML layout
+│   │   └── page.tsx                  ← Root redirect (→ /chat or /login)
+│   ├── components/
+│   │   ├── chat/
+│   │   │   ├── ChatArea.tsx          ← Chat messages + streaming UI ★
+│   │   │   └── Composer.tsx          ← Text input + send button
+│   │   ├── sidebar/
+│   │   │   └── Sidebar.tsx           ← Conversation list, new chat, settings
+│   │   ├── settings/
+│   │   │   └── SettingsModal.tsx     ← Settings panel (name, tone, etc.)
+│   │   └── ChatShell.tsx             ← Wraps sidebar + chat area together
+│   ├── lib/
+│   │   ├── supabase/
+│   │   │   ├── client.ts             ← Supabase client for browser
+│   │   │   └── server.ts             ← Supabase client for server (async cookies)
+│   │   └── prompts.ts                ← Builds Sam's system prompt from settings ★
+│   ├── types/
+│   │   └── index.ts                  ← TypeScript type definitions
+│   └── proxy.ts                      ← Route protection (Next.js 16 middleware)
+├── .env.local                        ← Secrets — NEVER commit to git
+├── .gitignore                        ← Excludes .env.local, node_modules, etc.
+├── .npmrc                            ← legacy-peer-deps=true (Vercel build fix)
+├── package.json                      ← Dependencies and scripts
+└── tsconfig.json                     ← TypeScript config</pre>
+
+<h3>Key Files Explained</h3>
+
+<p><strong>src/proxy.ts</strong> — Runs on every request before the page loads. If you are not logged in and try to visit <code>/chat</code>, it redirects you to <code>/login</code>. Also refreshes your Supabase session token automatically. In Next.js 16, this file is named <code>proxy.ts</code> (not <code>middleware.ts</code>).</p>
+
+<p><strong>src/lib/prompts.ts</strong> — Takes your profile (name, interests) and settings (tone, directness, custom instructions) and builds the system prompt that Sam receives before every conversation. This is what makes Sam feel personalized.</p>
+
+<p><strong>src/app/api/chat/[convId]/route.ts</strong> — The core of the app. Receives your message, saves it to the database, fetches your conversation history, calls GPT-4o with your system prompt, and streams the response back word by word.</p>
+
+<p><strong>src/lib/supabase/server.ts</strong> — Critical detail: in Next.js 16, <code>cookies()</code> is async and must be <code>await</code>ed. This file handles that correctly. If you forget the <code>await</code>, you get a 404 on every page.</p>
+
+
+<!-- SECTION 5 -->
+<div class="page-break"></div>
+<h2>Section 5 — How the System Works (Flow)</h2>
+
+<h3>Login Flow</h3>
+<pre>1. You visit the live URL
+2. proxy.ts checks: are you logged in? (reads session cookie)
+3. No session found → redirected to /login
+4. You type username + password → form POSTs to /api/auth/login
+5. Server checks: does username match SAM_USERNAME env var? (case-insensitive)
+6. Yes → server calls Supabase signInWithPassword() using SAM_USER_EMAIL
+7. Supabase validates the password and returns a session
+8. Session is stored in a cookie
+9. You are redirected to /chat</pre>
+
+<div class="callout"><strong>Why username instead of email?</strong> The login screen only asks for a username — you never see your email. The server maps the username to your internal Supabase email behind the scenes. This is a private app so there is only one valid username.</div>
+
+<h3>Chat Flow</h3>
+<pre>1.  You type a message and press Enter (or click send)
+2.  ChatArea.tsx calls sendMessage({ parts: [{ type: 'text', text: '...' }] })
+3.  TextStreamChatTransport sends POST to /api/chat/[convId]
+    Body: { messages: [all current messages including the new one] }
+4.  Server extracts the last user message from the messages array
+5.  Server saves the user message to the 'messages' table in Supabase
+6.  If this is the first message, server generates a title from the first 50 chars
+7.  Server fetches full conversation history from Supabase (up to 60 messages)
+8.  Server fetches your profile + settings from Supabase
+9.  Server calls buildSystemPrompt() to create Sam's personality instructions
+10. Server calls streamText() → OpenAI GPT-4o starts generating
+11. Response streams back token by token to your browser in real time
+12. When streaming finishes, onFinish callback saves Sam's reply to Supabase
+13. Client's onFinish fetches the conversation to update the title in the sidebar</pre>
+
+<h3>How Conversations Are Saved</h3>
+<ul>
+  <li>Every user message is saved <strong>before</strong> the AI is called (always recorded)</li>
+  <li>Every assistant reply is saved <strong>after</strong> streaming completes via <code>onFinish</code></li>
+  <li>When you switch conversations, the app fetches the full history from Supabase</li>
+  <li>Conversations are ordered newest-first in the sidebar</li>
+</ul>
+
+<h3>How Custom Instructions Work</h3>
+<ol>
+  <li>You open Settings and configure name, tone, interests, or custom instructions</li>
+  <li>Settings are saved to the <code>user_settings</code> table in Supabase</li>
+  <li>On every chat request, the server fetches your settings</li>
+  <li><code>buildSystemPrompt()</code> in <code>prompts.ts</code> weaves them into a system prompt</li>
+  <li>That prompt is sent to GPT-4o before your messages, shaping how Sam responds</li>
+</ol>
+
+<h3>Database Tables</h3>
+<table>
+  <tr><th>Table</th><th>What It Stores</th></tr>
+  <tr><td><code>profiles</code></td><td>Your name, created date</td></tr>
+  <tr><td><code>user_settings</code></td><td>Tone, directness, warmth, response length, interests, custom instructions</td></tr>
+  <tr><td><code>conversations</code></td><td>Conversation ID, title, created/updated timestamps</td></tr>
+  <tr><td><code>messages</code></td><td>Individual messages — conversation ID, role (user/assistant), content, timestamp</td></tr>
+</table>
+
+
+<!-- SECTION 6 -->
+<div class="page-break"></div>
+<h2>Section 6 — Exact Setup Steps We Took</h2>
+
+<h3>Phase 1: Local Development Setup</h3>
+<ul class="checklist done">
+  <li>Installed Node.js v24</li>
+  <li>Created project folder <code>C:\Users\coled\sam-web</code></li>
+  <li>Ran <code>npx create-next-app@latest</code> with TypeScript enabled</li>
+  <li>Installed dependencies: <code>npm install ai @ai-sdk/openai @ai-sdk/react @supabase/supabase-js @supabase/ssr</code></li>
+  <li>Created <code>.env.local</code> with all secrets (OpenAI key, Supabase keys, username, email)</li>
+  <li>Added <code>.env.local</code> to <code>.gitignore</code> — never committed to git</li>
+</ul>
+
+<h3>Phase 2: Supabase Setup</h3>
+<ul class="checklist done">
+  <li>Created account at supabase.com</li>
+  <li>Created new project</li>
+  <li>Ran the database migration SQL in the Supabase SQL editor:
+    <ul>
+      <li>Created tables: <code>profiles</code>, <code>user_settings</code>, <code>conversations</code>, <code>messages</code></li>
+      <li>Enabled Row Level Security on all tables</li>
+      <li>Created RLS policies (users can only see their own data)</li>
+      <li>Created trigger to auto-create a profile on new user signup</li>
+    </ul>
+  </li>
+  <li>Created the single user in Supabase Authentication → Users (email: mactamerr@gmail.com)</li>
+  <li>Set the password for that user</li>
+  <li>Copied Project URL, anon key, and service role key into <code>.env.local</code></li>
+</ul>
+
+<h3>Phase 3: Building the App</h3>
+<ul class="checklist done">
+  <li>Built login page — username + password only, no email shown</li>
+  <li>Built custom auth API (<code>/api/auth/login</code>) — maps username → email → Supabase</li>
+  <li>Built route protection (<code>src/proxy.ts</code>) — blocks unauthenticated access to <code>/chat</code></li>
+  <li>Built chat UI (<code>ChatArea.tsx</code>, <code>Composer.tsx</code>) — streaming messages, auto-scroll, copy button</li>
+  <li>Built sidebar (<code>Sidebar.tsx</code>) — conversation list, new chat, delete, settings button</li>
+  <li>Built settings modal (<code>SettingsModal.tsx</code>) — name, tone, interests, custom instructions</li>
+  <li>Built all API routes — chat, conversations, profile, auth</li>
+  <li>Built system prompt builder (<code>prompts.ts</code>) — personalizes Sam from settings</li>
+  <li>Fixed async <code>cookies()</code> bug in Next.js 16 — must use <code>await cookies()</code> in <code>server.ts</code></li>
+  <li>Renamed <code>middleware.ts</code> → <code>proxy.ts</code> (Next.js 16 convention change)</li>
+  <li>Fixed <code>useChat</code> import: moved from <code>ai/react</code> to <code>@ai-sdk/react</code> (AI SDK v6)</li>
+</ul>
+
+<h3>Phase 4: GitHub Setup</h3>
+<ul class="checklist done">
+  <li>Initialized git repo inside <code>sam-web/</code> — not in the home folder</li>
+  <li>Set git identity: <code>git config --global user.email</code> and <code>user.name</code></li>
+  <li>Created private GitHub repo <code>MacTamer/sam-web</code></li>
+  <li>Pushed all code: <code>git push -u origin main</code></li>
+</ul>
+
+<h3>Phase 5: Vercel Deployment + Bug Fixes</h3>
+<ul class="checklist done">
+  <li>Created account at vercel.com</li>
+  <li>Imported the <code>MacTamer/sam-web</code> GitHub repo</li>
+  <li>Added all 6 environment variables in Vercel → Settings → Environment Variables</li>
+  <li>Fixed build failure: added <code>legacy-peer-deps=true</code> to <code>.npmrc</code></li>
+  <li>Fixed build failure: updated eslint to <code>^9.0.0</code> (required by eslint-config-next v16)</li>
+  <li>Fixed build failure: renamed <code>maxTokens</code> → <code>maxOutputTokens</code> (AI SDK v6 rename)</li>
+  <li>Fixed build failure: updated <code>useChat</code> to v3 API — uses <code>sendMessage</code>, <code>status</code>, <code>TextStreamChatTransport</code>, <code>UIMessage.parts</code></li>
+  <li>Fixed build failure: updated chat route to read <code>{ messages: UIMessage[] }</code> body (new transport format)</li>
+  <li>Fixed build failure: fixed Supabase type cast in profile route</li>
+  <li>Fixed build failure: changed <code>toDataStreamResponse()</code> → <code>toTextStreamResponse()</code> (AI SDK v6)</li>
+  <li>App deployed successfully ✓</li>
+</ul>
+
+
+<!-- SECTION 7 -->
+<div class="page-break"></div>
+<h2>Section 7 — How to Run / Update Sam</h2>
+
+<h3>Running Locally (for development and testing)</h3>
+<pre># 1. Open terminal and go to the project folder
+cd C:\Users\coled\sam-web
+
+# 2. Start the development server
+npm run dev
+
+# 3. Open your browser to:
+http://localhost:3000</pre>
+
+<p>The local dev server uses your <code>.env.local</code> file for secrets. Changes to files update instantly without restarting. Stop it by pressing <code>Ctrl+C</code> in the terminal.</p>
+
+<div class="callout">You do NOT need the terminal open for the live site to work. The live site runs on Vercel's servers 24/7. The terminal is only needed when you are making changes on your computer.</div>
+
+<h3>Deploying Updates to the Live Site</h3>
+<pre># 1. Make your code changes (with Claude's help in this folder)
+
+# 2. Commit and push to GitHub
+git add .
+git commit -m "describe what you changed"
+git push
+
+# 3. Vercel auto-detects the push and redeploys (~60 seconds)</pre>
+
+<p>That is it. No manual deploy step needed. Every push to <code>main</code> = new live version.</p>
+
+<h3>Checking If a Deploy Succeeded</h3>
+<p>Go to <strong>vercel.com → sam-web → Deployments tab</strong>. Green checkmark = success. If it fails, click the deployment to see the build logs. Copy the red error text and bring it here to fix.</p>
+
+<h3>Changing Sam's Personality Without Code</h3>
+<p>Log into the live site → click your name in the sidebar → Settings. You can change name, tone, response style, interests, and custom instructions. Changes take effect on the next message you send.</p>
+
+<h3>Changing Your Login Password</h3>
+<p>Go to <strong>supabase.com → your project → Authentication → Users</strong>. Click on your user and reset the password from there.</p>
+
+<h3>Changing Your Login Username</h3>
+<p>Go to <strong>Vercel → sam-web → Settings → Environment Variables</strong>. Update <code>SAM_USERNAME</code> to the new username and redeploy.</p>
+
+
+<!-- SECTION 8 -->
+<h2>Section 8 — Current Limitations</h2>
+
+<table>
+  <tr><th>Area</th><th>Current State</th><th>Impact</th></tr>
+  <tr>
+    <td>Markdown rendering</td>
+    <td>Sam's replies display as plain text. Bold, bullet points, and code blocks show raw symbols like <code>**bold**</code></td>
+    <td>Medium — responses are readable but unformatted</td>
+  </tr>
+  <tr>
+    <td>Response length</td>
+    <td>Capped at 600 output tokens (~450 words) per response</td>
+    <td>Medium — longer answers get cut off</td>
+  </tr>
+  <tr>
+    <td>Conversation titles</td>
+    <td>Set to first 50 characters of your first message — not smart titles</td>
+    <td>Low — functional but not elegant</td>
+  </tr>
+  <tr>
+    <td>Regenerate button</td>
+    <td>Backend route exists but there is no button in the UI</td>
+    <td>Low — can't retry a bad response without refreshing</td>
+  </tr>
+  <tr>
+    <td>Error messages</td>
+    <td>If OpenAI fails mid-stream, no friendly error shown in the UI</td>
+    <td>Low — rare but confusing when it happens</td>
+  </tr>
+  <tr>
+    <td>Conversation search</td>
+    <td>No search bar — you scroll to find old conversations</td>
+    <td>Low now, grows over time</td>
+  </tr>
+  <tr>
+    <td>File / image support</td>
+    <td>Text only — Sam cannot read files or images</td>
+    <td>Medium for power use cases</td>
+  </tr>
+  <tr>
+    <td>Multi-user</td>
+    <td>Single-user by design — auth is hardcoded for one person</td>
+    <td>Not a limitation for personal use</td>
+  </tr>
+  <tr>
+    <td>OpenAI cost scaling</td>
+    <td>GPT-4o charges per token — heavy use will cost more</td>
+    <td>Low for personal use (~$2–5/month typical)</td>
+  </tr>
+</table>
+
+
+<!-- SECTION 9 -->
+<div class="page-break"></div>
+<h2>Section 9 — Next Steps (Roadmap)</h2>
+
+<h3>Quick Wins (easy to add)</h3>
+<table>
+  <tr><th>#</th><th>Feature</th><th>What to do</th></tr>
+  <tr>
+    <td>1</td>
+    <td><strong>Markdown rendering</strong></td>
+    <td>Install <code>react-markdown</code>. Replace the <code>&lt;div className="msg-content"&gt;{text}&lt;/div&gt;</code> in ChatArea.tsx with <code>&lt;ReactMarkdown&gt;{text}&lt;/ReactMarkdown&gt;</code>. Bold, lists, and code blocks will render properly.</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td><strong>Regenerate button</strong></td>
+    <td>Add a "Regenerate" button to the last assistant message in ChatArea.tsx. It already has a backend route at <code>/api/conversations/[id]/regenerate</code> — just wire it up.</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td><strong>Longer responses</strong></td>
+    <td>Change <code>maxOutputTokens: 600</code> to <code>1500</code> or <code>2000</code> in <code>src/app/api/chat/[convId]/route.ts</code>. Will cost slightly more per message.</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td><strong>Custom domain</strong></td>
+    <td>Buy a domain at Namecheap or Porkbun (~$10/yr). Connect it in Vercel → Settings → Domains. Follow Vercel's DNS instructions.</td>
+  </tr>
+</table>
+
+<h3>Medium Improvements</h3>
+<table>
+  <tr><th>#</th><th>Feature</th><th>What to do</th></tr>
+  <tr>
+    <td>5</td>
+    <td><strong>AI-generated titles</strong></td>
+    <td>After the first exchange, make a second AI call with a short prompt asking for a 4-6 word title. Save it to the conversation. More useful than truncated first message.</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td><strong>Code syntax highlighting</strong></td>
+    <td>Install <code>react-syntax-highlighter</code>. Pass it as a component to <code>react-markdown</code> to render code blocks with color.</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td><strong>Error handling UI</strong></td>
+    <td>Use the <code>error</code> field returned by <code>useChat</code> to show a friendly "Something went wrong" message with a retry button when the stream fails.</td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td><strong>Conversation search</strong></td>
+    <td>Add a search input to the sidebar. Filter the conversations list client-side by title, or add a Supabase full-text search query for message content.</td>
+  </tr>
+</table>
+
+<h3>Bigger Features</h3>
+<table>
+  <tr><th>#</th><th>Feature</th><th>What to do</th></tr>
+  <tr>
+    <td>9</td>
+    <td><strong>Switch AI models</strong></td>
+    <td>Add a model selector (GPT-4o, GPT-4o mini, Claude). Store the preference in user settings. In the chat route, read the setting and pass the chosen model to <code>streamText()</code>. The AI SDK supports multiple providers.</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td><strong>Sam's memory</strong></td>
+    <td>Create a <code>memories</code> table in Supabase. Let Sam save facts across conversations. On each request, fetch relevant memories and include them in the system prompt.</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td><strong>Image / file uploads</strong></td>
+    <td>Use Supabase Storage for files. Pass image URLs to GPT-4o vision. Requires UI changes (file input), storage setup, and multimodal model configuration.</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td><strong>Voice input</strong></td>
+    <td>Add a microphone button using the browser's Web Speech API. Transcribes voice to text and drops it into the input field. No extra services needed for basic transcription.</td>
+  </tr>
+</table>
+
+<div class="footer">
+  SAM System Manual &nbsp;|&nbsp; Built April 2026 &nbsp;|&nbsp; Stack: Next.js 16 · AI SDK v6 · Supabase · OpenAI GPT-4o · Vercel &nbsp;|&nbsp; Repo: MacTamer/sam-web
+</div>
+
+</body>
+</html>

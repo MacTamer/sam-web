@@ -85,7 +85,7 @@ export async function POST(
     system: systemPrompt,
     messages,
     temperature: 0.85,
-    maxOutputTokens: 600,
+    maxOutputTokens: 1500,
     onFinish: async ({ text }) => {
       await supabase.from('messages').insert({
         conversation_id: convId,
