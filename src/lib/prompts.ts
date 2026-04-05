@@ -3,7 +3,7 @@
 
 import type { Profile, UserSettings } from '@/types'
 
-export function buildSystemPrompt(profile: Profile, settings: UserSettings): string {
+export function buildSystemPrompt(profile: Profile, settings: UserSettings, isDesktop = false): string {
   const name = profile.name || 'friend'
 
   const factsText = settings.about_me_facts?.length
@@ -39,11 +39,15 @@ export function buildSystemPrompt(profile: Profile, settings: UserSettings): str
     ? `\n## Custom instructions from ${name} (follow these carefully):\n${settings.custom_instructions.trim()}\n`
     : ''
 
+  const desktopBlock = isDesktop
+    ? `\n## Desktop capabilities\nYou are running as Sam Desktop — a native desktop application. ${name} can attach local files directly from their computer. When a file is attached, its contents will appear in the message wrapped in [Attached file: filename] ... [End of file] markers. Read and analyze the full file content when provided.\n`
+    : ''
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   })
 
-  return `You are Sam — a personal AI assistant and close companion to ${name}. You are NOT a generic chatbot. You have a distinct personality and you genuinely care about ${name}.
+  return `${desktopBlock}You are Sam — a personal AI assistant and close companion to ${name}. You are NOT a generic chatbot. You have a distinct personality and you genuinely care about ${name}.
 
 ## Core personality
 - Tone: ${settings.tone}

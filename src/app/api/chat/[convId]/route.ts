@@ -16,6 +16,7 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   // TextStreamChatTransport sends { messages: UIMessage[] }
+  const isDesktop = req.headers.get('x-sam-desktop') === '1'
   const body = await req.json()
   const uiMessages: Array<{ role: string; parts?: Array<{ type: string; text?: string }> }> = body.messages ?? []
 
@@ -72,7 +73,8 @@ export async function POST(
 
   const systemPrompt = buildSystemPrompt(
     profile ?? { id: user.id, name: 'friend', created_at: '' },
-    { ...defaultSettings, user_id: user.id, updated_at: '', ...settings }
+    { ...defaultSettings, user_id: user.id, updated_at: '', ...settings },
+    isDesktop
   )
 
   const messages = (history ?? []).map(m => ({
