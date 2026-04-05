@@ -13,7 +13,13 @@ export async function createClient() {
         setAll: (cookiesToSet: { name: string; value: string; options?: Partial<ResponseCookie> }[]) => {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, {
+                ...options,
+                maxAge:   60 * 60 * 24 * 30, // 30 days
+                httpOnly: true,
+                sameSite: 'lax',
+                secure:   process.env.NODE_ENV === 'production',
+              })
             )
           } catch {
             // Called from Server Component — middleware handles session refresh
