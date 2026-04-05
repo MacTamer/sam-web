@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   if (name !== undefined) {
     updates.push(
-      supabase.from('profiles').upsert({ id: user.id, name }).eq('id', user.id)
+      supabase.from('profiles').upsert({ id: user.id, name }).eq('id', user.id) as unknown as Promise<unknown>
     )
   }
 
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
         user_id: user.id,
         ...settingsPayload,
         updated_at: new Date().toISOString(),
-      }).eq('user_id', user.id)
+      }).eq('user_id', user.id) as unknown as Promise<unknown>
     )
   }
 

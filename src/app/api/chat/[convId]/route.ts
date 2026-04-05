@@ -15,8 +15,15 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { message } = await req.json()
-  if (!message?.trim()) return NextResponse.json({ error: 'Empty message' }, { status: 400 })
+  // TextStreamChatTransport sends { messages: UIMessage[] }
+  const body = await req.json()
+  const uiMessages: Array<{ role: string; parts?: Array<{ type: string; text?: string }> }> = body.messages ?? []
+
+  // Extract the last user message text
+  const lastUserMsg = [...uiMessages].reverse().find(m => m.role === 'user')
+  const message = lastUserMsg?.parts?.find(p => p.type === 'text')?.text?.trim() ?? ''
+
+  if (!message) return NextResponse.json({ error: 'Empty message' }, { status: 400 })
 
   const { data: conv } = await supabase
     .from('conversations')
@@ -30,7 +37,7 @@ export async function POST(
   await supabase.from('messages').insert({
     conversation_id: convId,
     role: 'user',
-    content: message.trim(),
+    content: message,
   })
 
   const { count } = await supabase
@@ -41,7 +48,7 @@ export async function POST(
 
   let newTitle: string | undefined
   if (count === 1) {
-    newTitle = message.trim().slice(0, 50) + (message.trim().length > 50 ? '…' : '')
+    newTitle = message.slice(0, 50) + (message.length > 50 ? '…' : '')
     await supabase
       .from('conversations')
       .update({ title: newTitle, updated_at: new Date().toISOString() })
@@ -88,7 +95,5 @@ export async function POST(
     },
   })
 
-  const response = result.toTextStreamResponse()
-  if (newTitle) response.headers.set('X-Conv-Title', encodeURIComponent(newTitle))
-  return response
+  return result.toTextStreamResponse()
 }

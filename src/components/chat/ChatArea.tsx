@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import { useChat } from '@ai-sdk/react'
+import { TextStreamChatTransport } from 'ai'
 import { Composer } from './Composer'
 
 interface Props {
@@ -15,17 +16,18 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
   const messagesRef     = useRef<HTMLDivElement>(null)
   const userScrolledUp  = useRef(false)
   const [initialLoaded, setInitialLoaded] = useState(false)
+  const [input, setInput] = useState('')
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
-    api:            `/api/chat/${convId}`,
-    id:             convId,
-    streamProtocol: 'text',
-    onResponse: (res) => {
-      // Pick up auto-generated title from header
-      const title = res.headers.get('X-Conv-Title')
-      if (title) onTitleUpdate(convId, decodeURIComponent(title))
+  const { messages, sendMessage, status, setMessages } = useChat({
+    transport: new TextStreamChatTransport({ api: `/api/chat/${convId}` }),
+    id: convId,
+    onFinish: async () => {
+      const conv = await fetch(`/api/conversations/${convId}`).then(r => r.json())
+      if (conv.title && conv.title !== 'New chat') onTitleUpdate(convId, conv.title)
     },
   })
+
+  const isLoading = status === 'streaming' || status === 'submitted'
 
   // Load existing messages when conversation changes
   useEffect(() => {
@@ -36,9 +38,9 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
       .then(conv => {
         if (conv.messages) {
           setMessages(conv.messages.map((m: { id: string; role: string; content: string }) => ({
-            id:      m.id,
-            role:    m.role as 'user' | 'assistant',
-            content: m.content,
+            id:    m.id,
+            role:  m.role as 'user' | 'assistant',
+            parts: [{ type: 'text' as const, text: m.content }],
           })))
         }
         setInitialLoaded(true)
@@ -73,7 +75,21 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
     setTimeout(() => { btn.innerHTML = prev; btn.classList.remove('copied') }, 2000)
   }, [])
 
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+    sendMessage({ parts: [{ type: 'text', text: input.trim() }] })
+    setInput('')
+  }, [input, isLoading, sendMessage])
+
   const isEmpty = initialLoaded && messages.length === 0
+
+  function getMessageText(msg: (typeof messages)[0]): string {
+    return msg.parts
+      .filter(p => p.type === 'text')
+      .map(p => (p as { type: 'text'; text: string }).text)
+      .join('')
+  }
 
   return (
     <div className={`main${!isEmpty ? ' chatting' : ''}`} id="main">
@@ -90,17 +106,18 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
       <div className="messages" ref={messagesRef}>
         {messages.map((m, i) => {
           const isLast = i === messages.length - 1
+          const text = getMessageText(m)
           return (
             <div key={m.id} className={`message ${m.role === 'user' ? 'user' : 'sam'}${m.role === 'assistant' && isLoading && isLast ? ' streaming' : ''}`}>
               {m.role === 'assistant' && (
                 <div className="msg-label">Sam</div>
               )}
-              <div className="msg-content">{m.content}</div>
+              <div className="msg-content">{text}</div>
               {m.role === 'assistant' && !isLoading && (
                 <div className="msg-actions">
                   <button
                     className="msg-action-btn"
-                    onClick={e => copyMessage(m.content, e.currentTarget)}
+                    onClick={e => copyMessage(text, e.currentTarget)}
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
                       <rect x="9" y="9" width="13" height="13" rx="2" />
@@ -114,7 +131,7 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
           )
         })}
 
-        {isLoading && (
+        {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="message sam" id="typing-indicator">
             <div className="msg-label">Sam</div>
             <div className="msg-content">
@@ -131,7 +148,7 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
       <Composer
         input={input}
         isLoading={isLoading}
-        onChange={handleInputChange}
+        onChange={e => setInput(e.target.value)}
         onSubmit={handleSubmit}
       />
     </div>
