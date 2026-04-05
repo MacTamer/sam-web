@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { buildSystemPrompt, defaultSettings } from '@/lib/prompts'
+import { rateLimit } from '@/lib/ratelimit'
 import { openai } from '@ai-sdk/openai'
 import { streamText } from 'ai'
 import { NextResponse } from 'next/server'
@@ -14,6 +15,12 @@ export async function POST(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Rate limit: 60 messages per user per hour (protects OpenAI credits)
+  const rl = rateLimit(`chat:${user.id}`, 60, 60 * 60 * 1000)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded. Try again later.' }, { status: 429 })
+  }
 
   // TextStreamChatTransport sends { messages: UIMessage[] }
   const isDesktop = req.headers.get('x-sam-desktop') === '1'

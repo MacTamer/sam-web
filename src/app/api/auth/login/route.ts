@@ -4,32 +4,43 @@
 // with Supabase using the internal SAM_USER_EMAIL.
 
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit }    from '@/lib/ratelimit'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
+  // ── Rate limiting — 5 attempts per IP per 15 minutes ─────────────────────
+  const ip  = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  const rl  = rateLimit(`login:${ip}`, 5, 15 * 60 * 1000)
+
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many login attempts. Try again later.' },
+      {
+        status:  429,
+        headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) },
+      }
+    )
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const { username, password } = await req.json()
 
-  // Both fields required
   if (!username || !password) {
     return NextResponse.json({ error: 'Username and password are required.' }, { status: 400 })
   }
 
-  // Validate username — must match the single configured user
   const allowedUsername = process.env.SAM_USERNAME
   const internalEmail   = process.env.SAM_USER_EMAIL
 
   if (!allowedUsername || !internalEmail) {
-    console.error('SAM_USERNAME or SAM_USER_EMAIL not set in .env.local')
+    console.error('SAM_USERNAME or SAM_USER_EMAIL not set')
     return NextResponse.json({ error: 'Server misconfigured.' }, { status: 500 })
   }
 
-  // Case-insensitive username check
   if (username.trim().toLowerCase() !== allowedUsername.toLowerCase()) {
-    // Deliberate vague error — don't reveal which field is wrong
     return NextResponse.json({ error: 'Invalid username or password.' }, { status: 401 })
   }
 
-  // Authenticate with Supabase using the internal email
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({
     email: internalEmail,
@@ -40,7 +51,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid username or password.' }, { status: 401 })
   }
 
-  // Return email so mobile clients can establish their own Supabase session
   const isMobile = req.headers.get('x-sam-platform') === 'mobile'
   return NextResponse.json({ ok: true, ...(isMobile ? { email: internalEmail } : {}) })
 }
