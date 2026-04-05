@@ -17,8 +17,9 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
   const [initialLoaded, setInitialLoaded] = useState(false)
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
-    api: `/api/chat/${convId}`,
-    id:  convId,
+    api:            `/api/chat/${convId}`,
+    id:             convId,
+    streamProtocol: 'text',
     onResponse: (res) => {
       // Pick up auto-generated title from header
       const title = res.headers.get('X-Conv-Title')

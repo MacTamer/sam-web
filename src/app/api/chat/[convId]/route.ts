@@ -88,7 +88,7 @@ export async function POST(
     },
   })
 
-  const response = result.toDataStreamResponse()
+  const response = result.toTextStreamResponse()
   if (newTitle) response.headers.set('X-Conv-Title', encodeURIComponent(newTitle))
   return response
 }
