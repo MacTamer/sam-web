@@ -61,7 +61,7 @@ export async function POST(
     system: systemPrompt,
     messages: history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
     temperature: 0.9,
-    maxTokens: 600,
+    maxOutputTokens: 600,
     onFinish: async ({ text }) => {
       await supabase.from('messages').insert({
         conversation_id: id,
@@ -71,5 +71,5 @@ export async function POST(
     },
   })
 
-  return result.toDataStreamResponse()
+  return result.toTextStreamResponse()
 }
