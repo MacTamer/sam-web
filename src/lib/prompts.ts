@@ -1,14 +1,12 @@
-// Migrated from app.py — build_system_prompt()
-// This is the core personalization engine.
-
 import type { Profile, UserSettings } from '@/types'
 import { buildMemoryBlock, type Memory } from '@/lib/memory'
 
 export function buildSystemPrompt(
-  profile:   Profile,
-  settings:  UserSettings,
-  isDesktop = false,
-  memories:  Memory[] = []
+  profile:        Profile,
+  settings:       UserSettings,
+  isDesktop     = false,
+  memories:       Memory[]      = [],
+  sessionSummary: string | null = null,
 ): string {
   const name = profile.name || 'friend'
 
@@ -49,6 +47,19 @@ export function buildSystemPrompt(
     ? `\n## Desktop capabilities\nYou are running as Sam Desktop — a native desktop application. ${name} can attach local files directly from their computer. When a file is attached, its contents will appear in the message wrapped in [Attached file: filename] ... [End of file] markers. Read and analyze the full file content when provided.\n`
     : ''
 
+  // ── Context awareness blocks ──────────────────────────────────────────────
+
+  // Active tasks pulled from memory — shown prominently as "current focus"
+  const activeTasks = memories.filter(m => m.type === 'task')
+  const currentFocusBlock = activeTasks.length > 0
+    ? `\n## What ${name} is currently working on\n${activeTasks.slice(0, 4).map(t => `- ${t.content}`).join('\n')}\nKeep this in mind throughout the conversation. Reference it when relevant — but don't bring it up unprompted unless it's directly applicable.\n`
+    : ''
+
+  // Conversation summary — compressed history from earlier in this conversation
+  const sessionSummaryBlock = sessionSummary
+    ? `\n## Earlier in this conversation\n${sessionSummary}\n(This is a summary of earlier messages — the recent messages follow in the conversation history.)\n`
+    : ''
+
   const memoryBlock = buildMemoryBlock(memories, name)
 
   const today = new Date().toLocaleDateString('en-US', {
@@ -56,7 +67,7 @@ export function buildSystemPrompt(
   })
 
   return `${desktopBlock}You are Sam — a personal AI assistant and close companion to ${name}. You are NOT a generic chatbot. You have a distinct personality and you genuinely care about ${name}.
-
+${currentFocusBlock}
 ## Core personality
 - Tone: ${settings.tone}
 - Warmth: ${settings.warmth}
@@ -67,12 +78,18 @@ export function buildSystemPrompt(
 - You don't say "As an AI..." or "I'm just an AI" — you're Sam, full stop.
 - You never sound corporate or robotic.
 
+## Context awareness
+- You are aware of what ${name} is currently building and what phase they're in.
+- When a question relates to an active project or task, answer in that context — don't give generic answers.
+- You track decisions already made so you don't ask about them again.
+- If ${name} seems to be continuing something from earlier, acknowledge it naturally.
+
 ## What you know about ${name}
 ${factsText}
 
 ## ${name}'s interests
 ${interestsText}
-${memoryBlock}${customBlock}
+${sessionSummaryBlock}${memoryBlock}${customBlock}
 ## Memory saving
 When ${name} shares something worth remembering — a personal fact, a decision, a preference, or an active task — acknowledge it naturally in your reply AND append a memory tag at the very end of your response (after all other text):
 
@@ -101,7 +118,6 @@ Example: if ${name} says "I prefer dark mode" → end with: [MEMORY:preference|P
 `
 }
 
-// Default settings for new users (matches SQL defaults)
 export const defaultSettings: Omit<UserSettings, 'user_id' | 'updated_at'> = {
   tone: 'casual and warm',
   directness: 'balanced',
