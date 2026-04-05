@@ -7,15 +7,10 @@ import ReactMarkdown from 'react-markdown'
 import { Composer } from './Composer'
 
 interface AttachedFile {
-  name:    string
-  content: string
-}
-
-interface SamDesktop {
-  isDesktop: boolean
-  files: {
-    open: (options?: object) => Promise<{ filePath: string; content: string } | null>
-  }
+  name:     string
+  content:  string
+  preview?: string
+  isImage?: boolean
 }
 
 interface Props {
@@ -36,7 +31,7 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
 
   // Detect desktop after mount
   useEffect(() => {
-    isDesktopRef.current = !!(window as unknown as { samDesktop?: SamDesktop }).samDesktop?.isDesktop
+    isDesktopRef.current = !!(window as unknown as { samDesktop?: { isDesktop?: boolean } }).samDesktop?.isDesktop
   }, [])
 
   // Transport — sends x-sam-desktop header when running in Electron
@@ -127,22 +122,6 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
     }
   }, [convId, isLoading, regenerating, setMessages])
 
-  // Open native file picker (desktop only)
-  const handleAttachFile = useCallback(async () => {
-    const samDesktop = (window as unknown as { samDesktop?: SamDesktop }).samDesktop
-    if (!samDesktop) return
-    const result = await samDesktop.files.open({
-      filters: [
-        { name: 'Text files', extensions: ['txt', 'md', 'csv', 'json', 'js', 'ts', 'py', 'html', 'css', 'xml', 'yaml', 'yml'] },
-        { name: 'All files',  extensions: ['*'] },
-      ],
-    })
-    if (!result) return
-    const name    = result.filePath.split(/[\\/]/).pop() ?? 'file'
-    const content = result.content.slice(0, 30000) // cap at 30k chars
-    setAttachedFile({ name, content })
-  }, [])
-
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
     const text = (input ?? '').trim()
@@ -151,8 +130,9 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
     // Build the message — append file content inline if attached
     let messageText = text
     if (attachedFile) {
-      const fileBlock = `\n\n[Attached file: ${attachedFile.name}]\n${attachedFile.content}\n[End of file]`
-      messageText = text ? text + fileBlock : `Please read this file:\n${fileBlock}`
+      const tag       = attachedFile.isImage ? 'image' : 'file'
+      const fileBlock = `\n\n[Attached ${tag}: ${attachedFile.name}]\n${attachedFile.content}\n[End of ${tag}]`
+      messageText     = text ? text + fileBlock : `Please look at this ${tag}:\n${fileBlock}`
     }
 
     sendMessage({ parts: [{ type: 'text', text: messageText }] })
@@ -169,11 +149,11 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
       .join('')
   }
 
-  // Strip the raw file block from display — show a clean chip instead
-  function splitMessageAndFile(text: string): { message: string; fileName: string | null } {
-    const match = text.match(/^([\s\S]*?)\n?\n?\[Attached file: (.+?)\][\s\S]*?\[End of file\][\s\S]*$/)
-    if (!match) return { message: text, fileName: null }
-    return { message: match[1].trim(), fileName: match[2] }
+  // Strip the raw file/image block from display — show a clean chip instead
+  function splitMessageAndFile(text: string): { message: string; fileName: string | null; isImage: boolean } {
+    const match = text.match(/^([\s\S]*?)\n?\n?\[Attached (file|image): (.+?)\][\s\S]*?\[End of (file|image)\][\s\S]*$/)
+    if (!match) return { message: text, fileName: null, isImage: false }
+    return { message: match[1].trim(), fileName: match[3], isImage: match[2] === 'image' }
   }
 
   const lastAssistantIdx = messages.map(m => m.role).lastIndexOf('assistant')
@@ -195,9 +175,9 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
           const isLast         = i === messages.length - 1
           const isLastAssistant = i === lastAssistantIdx
           const rawText        = getMessageText(m)
-          const { message: displayText, fileName } = m.role === 'user'
+          const { message: displayText, fileName, isImage: fileIsImage } = m.role === 'user'
             ? splitMessageAndFile(rawText)
-            : { message: rawText, fileName: null }
+            : { message: rawText, fileName: null, isImage: false }
 
           return (
             <div key={m.id} className={`message ${m.role === 'user' ? 'user' : 'sam'}${m.role === 'assistant' && isLoading && isLast ? ' streaming' : ''}`}>
@@ -206,10 +186,12 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
               )}
               {fileName && (
                 <div className="msg-file-chip">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
+                  {fileIsImage ? '🖼' : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                  )}
                   {fileName}
                 </div>
               )}
@@ -271,7 +253,7 @@ export function ChatArea({ convId, onTitleUpdate, onToggleSidebar }: Props) {
         attachedFile={attachedFile}
         onChange={e => setInput(e.target.value)}
         onSubmit={handleSubmit}
-        onAttachFile={handleAttachFile}
+        onAttach={setAttachedFile}
         onRemoveFile={() => setAttachedFile(null)}
       />
     </div>
