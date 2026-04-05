@@ -60,6 +60,7 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
   const [headers,      setHeaders]      = useState(settings?.use_headers || false)
   const [facts,        setFacts]        = useState((settings?.about_me_facts || []).join('\n'))
   const [instructions, setInstructions] = useState(settings?.custom_instructions || '')
+  const [techLevel,    setTechLevel]    = useState(settings?.technical_level || 'intermediate')
 
   useEffect(() => {
     const sd = (window as unknown as { samDesktop?: SamDesktop }).samDesktop
@@ -87,6 +88,7 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
       topics_of_interest: interests.split(',').map(s => s.trim()).filter(Boolean),
       about_me_facts: facts.split('\n').map(s => s.trim()).filter(Boolean),
       custom_instructions: instructions.trim(),
+      technical_level: techLevel,
     }
     await fetch('/api/profile', {
       method: 'POST',
@@ -99,7 +101,7 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
     if (profile && settings) {
       onSaved({ ...profile, name }, { ...settings, ...payload })
     }
-  }, [name, tone, directness, warmth, respLength, emoji, headers, interests, facts, instructions, profile, settings, onSaved])
+  }, [name, tone, directness, warmth, respLength, emoji, headers, interests, facts, instructions, techLevel, profile, settings, onSaved])
 
   const handleClearMemory = useCallback(async () => {
     if (!confirm('Delete all conversations? This cannot be undone.')) return
@@ -339,6 +341,15 @@ export function SettingsModal({ section: initialSection, profile, settings, onCl
               <label className="field-label">About you</label>
               <p className="field-desc">Facts Sam should always know about you. One per line.</p>
               <textarea className="field-textarea" rows={4} value={facts} onChange={e => setFacts(e.target.value)} placeholder={"I live in Denver\nI have two dogs"} />
+            </div>
+            <div className="field-group">
+              <label className="field-label">Technical level</label>
+              <p className="field-desc">How Sam calibrates explanations. Affects how much jargon, detail, and background it assumes.</p>
+              <select className="field-select" value={techLevel} onChange={e => setTechLevel(e.target.value)}>
+                <option value="beginner">Beginner — plain English, analogies, no assumed knowledge</option>
+                <option value="intermediate">Intermediate — some background, explain the why</option>
+                <option value="expert">Expert — precise terms, skip basics, get to the point</option>
+              </select>
             </div>
             <div className="field-group">
               <label className="field-label">Custom instructions</label>

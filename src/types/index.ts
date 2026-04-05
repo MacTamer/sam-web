@@ -17,6 +17,7 @@ export interface UserSettings {
   topics_of_interest: string[]
   about_me_facts: string[]
   custom_instructions: string
+  technical_level: string
   updated_at: string
 }
 
@@ -59,6 +60,7 @@ export interface UpdateSettingsPayload {
   topics_of_interest?: string[]
   about_me_facts?: string[]
   custom_instructions?: string
+  technical_level?: string
 }
 
 export interface Memory {

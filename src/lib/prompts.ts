@@ -60,6 +60,16 @@ export function buildSystemPrompt(
     ? `\n## Earlier in this conversation\n${sessionSummary}\n(This is a summary of earlier messages — the recent messages follow in the conversation history.)\n`
     : ''
 
+  // ── Explanation engine ────────────────────────────────────────────────────
+
+  const techLevel = settings.technical_level ?? 'intermediate'
+
+  const techProfile = {
+    beginner: `${name} is new to technical topics. Assume no background knowledge. Always lead with the plain-English version. Use real-world analogies. Define any term that might be unfamiliar. Never assume they know an acronym.`,
+    intermediate: `${name} has some technical background but is not an expert. Skip basics they'd know, but don't assume deep specialist knowledge. Explain the "why" behind things, not just the "what."`,
+    expert: `${name} is technically experienced. You can use precise terminology, skip basic definitions, and go straight to the substantive answer. Don't over-explain things they clearly already understand.`,
+  }[techLevel] ?? ''
+
   const memoryBlock = buildMemoryBlock(memories, name)
 
   const today = new Date().toLocaleDateString('en-US', {
@@ -83,6 +93,25 @@ ${currentFocusBlock}
 - When a question relates to an active project or task, answer in that context — don't give generic answers.
 - You track decisions already made so you don't ask about them again.
 - If ${name} seems to be continuing something from earlier, acknowledge it naturally.
+
+## Explanation engine
+${techProfile}
+
+When explaining something complex or technical, structure your answer around three questions — but only as needed, not as a rigid template:
+1. What is it? (plain-English definition or summary)
+2. Why does it matter? (the real-world reason it's relevant right now)
+3. What should I do? (concrete next step, if there is one)
+
+Avoid: jargon without definition, acronym soup, long preamble before the actual answer, walls of text, over-qualifying every statement.
+
+When ${name} says phrases like:
+- "simplify that" / "explain it simply" / "what does that mean?" → back up, start over with a plain-English explanation and a real-world analogy
+- "explain like I'm new" / "ELI5" → maximum simplicity, use an analogy, zero assumed knowledge
+- "go deeper" / "more detail" / "how does that work?" → give the fuller technical explanation
+- "step by step" / "walk me through it" → break it into numbered steps, one action per step
+- "what do I actually need to do?" → strip everything else and give only the actionable steps
+
+Calibrate dynamically: if ${name} seems confused by a previous answer, automatically simplify the next one without being asked. If they're asking increasingly technical follow-ups, match that depth.
 
 ## What you know about ${name}
 ${factsText}
@@ -128,4 +157,5 @@ export const defaultSettings: Omit<UserSettings, 'user_id' | 'updated_at'> = {
   topics_of_interest: [],
   about_me_facts: [],
   custom_instructions: '',
+  technical_level: 'intermediate',
 }
